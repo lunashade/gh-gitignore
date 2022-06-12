@@ -1,4 +1,4 @@
-module github.com/lunashade/gh-ignore
+module github.com/lunashade/gh-gitignore
 
 go 1.18
 

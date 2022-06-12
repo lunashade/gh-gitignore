@@ -1,11 +1,11 @@
-# gh-ignore
+# gh-gitignore
 
-Download gitignore using [Gitignore API](https://docs.github.com/ja/rest/gitignore), print it to stdout.
+Print gitignore template using [Gitignore API](https://docs.github.com/ja/rest/gitignore).
 Written in Go.
 
 ## Install & Usage
 
 ```bash
-$ gh extension install lunashade/gh-ignore
-$ gh ignore > .gitignore
+$ gh extension install lunashade/gh-gitignore
+$ gh gitignore > .gitignore
 ```
