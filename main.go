@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -19,13 +20,13 @@ type RepoContent struct {
 func main() {
 	client, err := gh.RESTClient(nil)
 	if err != nil {
-		log.Print(err)
+		log.Fatal(err)
 		return
 	}
 	response := []RepoContent{}
 	err = client.Get("repos/github/gitignore/contents", &response)
 	if err != nil {
-		log.Print(err)
+		log.Fatal(err)
 		return
 	}
 
@@ -36,30 +37,33 @@ func main() {
 		}
 	}
 
-	idx, err := fuzzyfinder.Find(
+	indices, err := fuzzyfinder.FindMulti(
 		ignores,
 		func(i int) string {
 			return ignores[i].Name
 		},
 	)
 	if err != nil {
-		log.Print(err)
+		log.Fatal(err)
 		return
 	}
-	item := ignores[idx]
-	resp, err := http.Get(item.DownloadURL)
-	if err != nil {
-		log.Print(err)
-		return
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		log.Print(resp.Status)
-		return
-	}
-	_, err = io.Copy(os.Stdout, resp.Body)
-	if err != nil {
-		log.Print(err)
-		return
+	for _, idx := range indices {
+		item := ignores[idx]
+		resp, err := http.Get(item.DownloadURL)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			log.Fatal(resp.Status)
+			return
+		}
+		fmt.Println("#", item.Name)
+		_, err = io.Copy(os.Stdout, resp.Body)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
 	}
 }
