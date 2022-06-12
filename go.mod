@@ -2,7 +2,10 @@ module github.com/lunashade/gh-ignore
 
 go 1.18
 
-require github.com/cli/go-gh v0.0.3
+require (
+	github.com/cli/go-gh v0.0.3
+	github.com/ktr0731/go-fuzzyfinder v0.6.0
+)
 
 require (
 	github.com/cli/safeexec v1.0.0 // indirect
@@ -10,7 +13,6 @@ require (
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/gdamore/tcell/v2 v2.4.0 // indirect
 	github.com/henvic/httpretty v0.0.6 // indirect
-	github.com/ktr0731/go-fuzzyfinder v0.6.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.0.3 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/nsf/termbox-go v0.0.0-20201124104050-ed494de23a00 // indirect
