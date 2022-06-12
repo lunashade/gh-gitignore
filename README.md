@@ -1,7 +1,7 @@
 # gh-ignore
 
-Download gitignore from [github/gitignore](https://github.com/github/gitignore).
-Written in Go. Prints gitignore to the stdout.
+Download gitignore using [Gitignore API](https://docs.github.com/ja/rest/gitignore), print it to stdout.
+Written in Go.
 
 ## Install & Usage
 

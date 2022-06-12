@@ -2,19 +2,16 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
-	"net/http"
-	"os"
-	"strings"
+	"path"
 
 	"github.com/cli/go-gh"
 	"github.com/ktr0731/go-fuzzyfinder"
 )
 
-type RepoContent struct {
-	Name        string `json:"name"`
-	DownloadURL string `json:"download_url"`
+type Template struct {
+	Name   string `json:"name"`
+	Source string `json:"source"`
 }
 
 func main() {
@@ -23,24 +20,17 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	response := []RepoContent{}
-	err = client.Get("repos/github/gitignore/contents", &response)
+	response := []string{}
+	err = client.Get("gitignore/templates", &response)
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
 
-	ignores := make([]RepoContent, 0, len(response))
-	for _, c := range response {
-		if strings.HasSuffix(c.Name, ".gitignore") {
-			ignores = append(ignores, c)
-		}
-	}
-
 	indices, err := fuzzyfinder.FindMulti(
-		ignores,
+		response,
 		func(i int) string {
-			return ignores[i].Name
+			return response[i]
 		},
 	)
 	if err != nil {
@@ -48,22 +38,16 @@ func main() {
 		return
 	}
 	for _, idx := range indices {
-		item := ignores[idx]
-		resp, err := http.Get(item.DownloadURL)
+		item := response[idx]
+		pat := path.Join("gitignore/templates", item)
+		resp := new(Template)
+		err = client.Get(pat, resp)
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			log.Fatal(resp.Status)
-			return
-		}
-		fmt.Println("#", item.Name)
-		_, err = io.Copy(os.Stdout, resp.Body)
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
+		fmt.Println("# ===", resp.Name, "===")
+		fmt.Println("# gh api", pat)
+		fmt.Println(resp.Source)
 	}
 }
