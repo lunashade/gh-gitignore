@@ -1,26 +1,65 @@
 package main
 
 import (
-	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"strings"
 
 	"github.com/cli/go-gh"
+	"github.com/ktr0731/go-fuzzyfinder"
 )
 
-func main() {
-	fmt.Println("hi world, this is the gh-ignore extension!")
-	client, err := gh.RESTClient(nil)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	response := struct {Login string}{}
-	err = client.Get("user", &response)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Printf("running as %s\n", response.Login)
+type RepoContent struct {
+	Name        string `json:"name"`
+	DownloadURL string `json:"download_url"`
 }
 
-// For more examples of using go-gh, see:
-// https://github.com/cli/go-gh/blob/trunk/example_gh_test.go
+func main() {
+	client, err := gh.RESTClient(nil)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	response := []RepoContent{}
+	err = client.Get("repos/github/gitignore/contents", &response)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	ignores := make([]RepoContent, 0, len(response))
+	for _, c := range response {
+		if strings.HasSuffix(c.Name, ".gitignore") {
+			ignores = append(ignores, c)
+		}
+	}
+
+	idx, err := fuzzyfinder.Find(
+		ignores,
+		func(i int) string {
+			return ignores[i].Name
+		},
+	)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	item := ignores[idx]
+	resp, err := http.Get(item.DownloadURL)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		log.Print(resp.Status)
+		return
+	}
+	_, err = io.Copy(os.Stdout, resp.Body)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+}
