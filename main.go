@@ -94,19 +94,26 @@ func getIndicesFuzzy(kinds []string) []int {
 }
 
 func getIndicesFromArgs(kinds, args []string) []int {
+	// split comma-separated argument
+	cands := make([]string, 0, len(args))
+	for _, arg := range args {
+		cands = append(cands, strings.Split(arg, ",")...)
+	}
+
+	// find indices
 	kind_to_index := make(map[string]int)
 	for i, kind := range kinds {
 		kind = strings.ToLower(kind)
 		kind_to_index[kind] = i
 	}
-	indices := make([]int, 0, len(args))
-	for _, arg := range args {
-		arg = strings.ToLower(arg)
-		i, ok := kind_to_index[arg]
+	indices := make([]int, 0, len(cands))
+	for _, cand := range cands {
+		cand = strings.ToLower(cand)
+		i, ok := kind_to_index[cand]
 		if ok {
 			indices = append(indices, i)
 		} else {
-			fmt.Fprintln(os.Stderr, "no available gitignore for:", arg)
+			fmt.Fprintln(os.Stderr, "no available gitignore for:", cand)
 		}
 	}
 	return indices
