@@ -1,10 +1,12 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/cli/go-gh"
 	"github.com/ktr0731/go-fuzzyfinder"
@@ -27,33 +29,38 @@ func (r *Result) Print() {
 }
 
 func main() {
+	// parse flags
+	flag.Parse()
+	args := flag.Args()
+	useFuzzy := len(args) == 0
+
+	// connect
 	client, err := gh.RESTClient(nil)
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
-	list := []string{}
-	err = client.Get("gitignore/templates", &list)
+
+	// get avaliable kinds
+	kinds := []string{}
+	err = client.Get("gitignore/templates", &kinds)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	indices, err := fuzzyfinder.FindMulti(
-		list,
-		func(i int) string {
-			return list[i]
-		},
-		fuzzyfinder.WithHeader("choose template name(s). [ESC]:abort/[TAB]:toggle select"),
-	)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+	// find template kind to print
+	var indices []int
+	if useFuzzy {
+		indices = getIndicesFuzzy(kinds)
+	} else {
+		indices = getIndicesFromArgs(kinds, args)
 	}
 
+	// print results
 	results := make([]*Result, 0, len(indices))
 	for _, idx := range indices {
-		item := list[idx]
+		item := kinds[idx]
 		r := &Result{
 			apiPath: path.Join("gitignore/templates", item),
 			tmpl:    new(Template),
@@ -69,4 +76,38 @@ func main() {
 	for _, r := range results {
 		r.Print()
 	}
+}
+
+func getIndicesFuzzy(kinds []string) []int {
+	indices, err := fuzzyfinder.FindMulti(
+		kinds,
+		func(i int) string {
+			return kinds[i]
+		},
+		fuzzyfinder.WithHeader("choose template name(s). [ESC]:abort/[TAB]:toggle select"),
+	)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	return indices
+}
+
+func getIndicesFromArgs(kinds, args []string) []int {
+	kind_to_index := make(map[string]int)
+	for i, kind := range kinds {
+		kind = strings.ToLower(kind)
+		kind_to_index[kind] = i
+	}
+	indices := make([]int, 0, len(args))
+	for _, arg := range args {
+		arg = strings.ToLower(arg)
+		i, ok := kind_to_index[arg]
+		if ok {
+			indices = append(indices, i)
+		} else {
+			fmt.Fprintln(os.Stderr, "no available gitignore for:", arg)
+		}
+	}
+	return indices
 }
